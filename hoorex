@@ -1,0 +1,154 @@
+#!/usr/bin/env python
+#
+# ex:set ai shiftwidth=4 inputtab=spaces smarttab noautotab:
+
+from __future__ import print_function
+
+import sys, os
+import fnmatch
+import subprocess
+import pickle
+from xdg.BaseDirectory import *
+import argparse
+import logging
+
+
+# How we were called
+(apppath, appname) = os.path.split(sys.argv[0])
+
+logging.basicConfig(format='%(levelname)s: %(message)s')
+hlog = logging.getLogger(appname)
+
+# How far into requirements tree to go
+DEPTH_LIMIT  = 10
+
+# Location of our package tree
+PKG_BASE = os.path.join(os.sep,'scratch', 'PKG', 'SBo', 'slackbuilds')
+
+data_dir = os.path.join(xdg_data_home, appname)
+if not os.path.isdir(data_dir):
+    os.mkdir(data_dir)
+SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description="This program shows which other packages require a given SBo package")
+    parser.add_argument("-f", "--force", action="store_true", dest="force",
+                        help="force (re)processing of repo data", default=False)
+    parser.add_argument("-m", "--multilevel", action="store_true", dest="multilevel",
+                        help="after finding immediate requirers, show who requires those", default=False)
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose_mode",
+                        help="be verbose - show not just calculated package names", default=False)
+    parser.add_argument("target", metavar='PKG', type=str, nargs='*', help="package(s) to process")
+    args = parser.parse_args()
+
+    if args.verbose_mode:
+        hlog.setLevel(logging.DEBUG)
+        hlog.debug("VERBOSE mode set at command line")
+    else:
+        hlog.setLevel(logging.INFO)
+
+    PkgRequires = dict()
+    PkgNeededBy = dict()
+    PkgData = dict()
+
+    if args.force == False and os.path.exists(SAVED_DATA):
+        # First try to load preexisting data
+        hlog.debug("Loading existing repo data")
+        pkl_file = open(SAVED_DATA, 'rb')
+        PkgData = pickle.load(pkl_file)
+        pkl_file.close()
+        PkgRequires = PkgData['PkgRequires']
+        PkgNeededBy = PkgData['PkgNeededBy']
+        hlog.debug("PkgData loaded from file OK")
+    else:
+        if args.force == True:
+            hlog.debug("(re)build of repo data forced by -f option - please wait ...")
+        elif not os.path.exists(SAVED_DATA):
+            hlog.debug("Couldn't open data file, generating new data - please wait ...")
+        build_dicts(PkgRequires, PkgNeededBy, PkgData)
+        PkgData['PkgRequires'] = PkgRequires
+        PkgData['PkgNeededBy'] = PkgNeededBy
+        output = open(SAVED_DATA, 'wb')
+        # Pickle the list using the highest protocol available.
+        pickle.dump(PkgData, output, -1)
+        output.close()
+
+    multilevel_depth = 0
+    targets = args.target
+    multi_list = []
+    multi_list.append(targets)
+    while True:
+        if len(targets) < 1:
+            break
+        hlog.debug("At LEVEL %d, required by: %s" % (multilevel_depth, targets))
+        pkglist = []
+        for package in targets:
+            if PkgRequires.has_key(package):
+                if PkgNeededBy.has_key(package):
+                    hlog.debug("\t%s is needed by: %s" % (package, PkgNeededBy[package]))
+                    pkglist.extend(PkgNeededBy[package])
+                else:
+                    hlog.debug("\t%s isn't needed by any other package" % package)
+            else:
+                hlog.debug("\tSkipping package \"%s\" (unknown package)" % package)
+
+        if len(pkglist) > 0:
+            multi_list.append(pkglist)
+        if not args.multilevel or len(targets) < 1:
+            break
+        targets = list(set(pkglist))
+        multilevel_depth += 1
+        if multilevel_depth > DEPTH_LIMIT:
+            break
+
+    # Everything (including initial pkgs enquired about)
+    hlog.debug(multi_list)
+
+    # Output
+    for requirers in multi_list:
+        for req in requirers:
+            print(req, end=' ')
+    print()
+
+
+def build_dicts(PkgRequires, PkgNeededBy, PkgData):
+    here = os.getcwd()
+    os.chdir(PKG_BASE)
+
+    for dirpath, dirnames, filenames in os.walk('.'):
+        for filenm in filenames:
+            if fnmatch.fnmatch(filenm, '*.info'):
+                #print(os.path.split(dirpath)[-1])
+                #print(os.path.join(dirpath, filenm))
+                pkgname = os.path.split(dirpath)[-1]
+                if pkgname + '.info' == filenm:
+                    #print('XXXX')
+                    command = ['bash', '-c', 'source ' + os.path.join(dirpath, filenm) + ' && echo $' + 'REQUIRES']
+                    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
+                    for line in proc.stdout:
+                        result = line
+                    proc.communicate()
+                    #print("Adding %s ----- (%s)" % (pkgname, line.strip()))
+                    PkgRequires[pkgname] = line.split()
+                    #if target in line.split():
+                    #    print("%s needs %s" % (filenm, target))
+    #print
+    hlog.debug("Step 1 done - %d entries" % len(PkgRequires))
+
+    for k, v in PkgRequires.iteritems():
+        #print("%s ----- %s" % (k, v))
+        if len(v) > 0:
+            #print("%s ----- %s" % (k, v))
+            for required in v:
+                if not PkgNeededBy.has_key(required):
+                    PkgNeededBy[required] = []
+                PkgNeededBy[required].extend(k.split())
+    hlog.debug("Step 2 done - %d entries" % len(PkgNeededBy))
+
+    os.chdir(here)
+
+
+if __name__ == '__main__':
+    main()
