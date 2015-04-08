@@ -11,6 +11,7 @@ import pickle
 from xdg.BaseDirectory import *
 import argparse
 import logging
+import ConfigParser
 
 
 # How we were called
@@ -22,25 +23,31 @@ hlog = logging.getLogger(appname)
 # How far into requirements tree to go
 DEPTH_LIMIT  = 10
 
-# Location of our package tree
-PKG_BASE = os.path.join(os.sep,'scratch', 'PKG', 'SBo', 'slackbuilds')
-
-data_dir = os.path.join(xdg_data_home, appname)
-if not os.path.isdir(data_dir):
-    os.mkdir(data_dir)
-SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
-
-
 
 def main():
-    parser = argparse.ArgumentParser(description="This program shows which other packages require a given SBo package")
+    # User configuration
+    default_config = load_user_config()
+
+    # Command line arguments
+    parser = argparse.ArgumentParser(description="This program shows which \
+                    other packages require a given SBo package")
     parser.add_argument("-f", "--force", action="store_true", dest="force",
-                        help="force (re)processing of repo data", default=False)
+                default=default_config.getboolean('HooRex', 'force'),
+                help="force (re)processing of repo data")
     parser.add_argument("-m", "--multilevel", action="store_true", dest="multilevel",
-                        help="after finding immediate requirers, show who requires those", default=False)
+                default=default_config.getboolean('HooRex', 'multilevel'),
+                help="after finding immediate requirers, show who requires those")
     parser.add_argument("-v", "--verbose", action="store_true", dest="verbose_mode",
-                        help="be verbose - show not just calculated package names", default=False)
-    parser.add_argument("target", metavar='PKG', type=str, nargs='*', help="package(s) to process")
+                default=default_config.getboolean('HooRex', 'verbose'),
+                help="be verbose - show lots of additional information, \
+                    not just calculated package names")
+    parser.add_argument("target", metavar='PKG', type=str, nargs='*',
+                help="package(s) to process")
+
+    parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
+                help="set the full filesystem path to the local slackbuilds \
+                    repository e.g. -s /home/jerry/slackbuilds")
+
     args = parser.parse_args()
 
     if args.verbose_mode:
@@ -48,6 +55,24 @@ def main():
         hlog.debug("VERBOSE mode set at command line")
     else:
         hlog.setLevel(logging.INFO)
+
+    if args.sbo_path is not None:
+        sbo_path = args.sbo_path.split()[-1]
+        # If no SBO_PATH exists, set it in config defaults
+        if  not default_config.has_option('HooRex', 'sbo_path'):
+            user_config_set(default_config, 'sbo_path', sbo_path)
+    elif default_config.has_option('HooRex', 'sbo_path'):
+        sbo_path = default_config.get('HooRex', 'sbo_path')
+        hlog.debug("Set sbo_path to %s from config file" % sbo_path)
+    else:
+        sbo_path = find_sbo_path()
+    hlog.debug("XXXXX %s" % sbo_path)
+
+    # Repo Data
+    data_dir = os.path.join(xdg_data_home, appname)
+    if not os.path.isdir(data_dir):
+        os.mkdir(data_dir)
+    SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
 
     PkgRequires = dict()
     PkgNeededBy = dict()
@@ -67,7 +92,7 @@ def main():
             hlog.debug("(re)build of repo data forced by -f option - please wait ...")
         elif not os.path.exists(SAVED_DATA):
             hlog.debug("Couldn't open data file, generating new data - please wait ...")
-        build_dicts(PkgRequires, PkgNeededBy, PkgData)
+        build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData)
         PkgData['PkgRequires'] = PkgRequires
         PkgData['PkgNeededBy'] = PkgNeededBy
         output = open(SAVED_DATA, 'wb')
@@ -113,9 +138,9 @@ def main():
     print()
 
 
-def build_dicts(PkgRequires, PkgNeededBy, PkgData):
+def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData):
     here = os.getcwd()
-    os.chdir(PKG_BASE)
+    os.chdir(sbo_path)
 
     for dirpath, dirnames, filenames in os.walk('.'):
         for filenm in filenames:
@@ -148,6 +173,44 @@ def build_dicts(PkgRequires, PkgNeededBy, PkgData):
     hlog.debug("Step 2 done - %d entries" % len(PkgNeededBy))
 
     os.chdir(here)
+
+
+def load_user_config():
+    config_dir = os.path.join(xdg_config_home, appname)
+    config_file = os.path.join(config_dir, 'defaults.cfg')
+    user_config = ConfigParser.ConfigParser()
+
+    # No user configuration file exists so generate a default one
+    if not os.path.isdir(config_dir) or not os.path.exists(config_file):
+        try:
+            os.mkdir(config_dir)
+        except:
+            pass
+        user_config.add_section('HooRex')
+        user_config.set('HooRex', 'force', 'False')
+        user_config.set('HooRex', 'multilevel', 'False')
+        user_config.set('HooRex', 'verbose', 'False')
+
+        with open(config_file, 'wb') as configfile:
+            user_config.write(configfile)
+        configfile.close()
+    else:
+        user_config.read(config_file)
+    return user_config
+
+def find_sbo_path():
+    hlog.critical("SBO_PATH is not set. Please set it using the -s (--slackbuilds) option e.g.\n hoorex -s /home/thomas/slackbuilds")
+    sys.exit(1)
+
+def user_config_set(user_config, key, value):
+    config_dir = os.path.join(xdg_config_home, appname)
+    config_file = os.path.join(config_dir, 'defaults.cfg')
+
+    # We assume we have been given a valid key & value
+    user_config.set('HooRex', key, value)
+    with open(config_file, 'wb') as configfile:
+        user_config.write(configfile)
+    configfile.close()
 
 
 if __name__ == '__main__':
