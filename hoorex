@@ -37,20 +37,27 @@ def main():
     parser.add_argument("-m", "--multilevel", action="store_true", dest="multilevel",
                 default=default_config.getboolean('HooRex', 'multilevel'),
                 help="after finding immediate requirers, show who requires those")
-    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose_mode",
+    parser.add_argument("-d", "--debug", action="store_true", dest="debug_mode",
                 default=default_config.getboolean('HooRex', 'verbose'),
                 help="be verbose - show lots of additional information, \
                     not just calculated package names")
-    parser.add_argument("target", metavar='PKG', type=str, nargs='*',
-                help="package(s) to process")
-
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
+    parser.add_argument("-v", "--version", action="help",
+                help="display version number")
+    parser.add_argument("target", metavar='PKG', type=str, nargs='*',
+                help="package(s) to process")
 
     args = parser.parse_args()
 
-    if args.verbose_mode:
+    # Allow packages to be taken from stdin as well as a command argument
+    if not sys.stdin.isatty():
+        pipe_targets = sys.stdin.read().split()
+    else:
+        pipe_targets = []
+
+    if args.debug_mode:
         hlog.setLevel(logging.DEBUG)
         hlog.debug("VERBOSE mode set at command line")
     else:
@@ -66,7 +73,7 @@ def main():
         hlog.debug("Set sbo_path to %s from config file" % sbo_path)
     else:
         sbo_path = find_sbo_path()
-    hlog.debug("XXXXX %s" % sbo_path)
+    hlog.debug("sbo_path: %s" % sbo_path)
 
     # Repo Data
     data_dir = os.path.join(xdg_data_home, appname)
@@ -101,7 +108,8 @@ def main():
         output.close()
 
     multilevel_depth = 0
-    targets = args.target
+    targets = set(pipe_targets + args.target)
+    hlog.debug("Processing initial targets of: %s" % targets)
     multi_list = []
     multi_list.append(targets)
     while True:
@@ -149,7 +157,6 @@ def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData):
                 #print(os.path.join(dirpath, filenm))
                 pkgname = os.path.split(dirpath)[-1]
                 if pkgname + '.info' == filenm:
-                    #print('XXXX')
                     command = ['bash', '-c', 'source ' + os.path.join(dirpath, filenm) + ' && echo $' + 'REQUIRES']
                     proc = subprocess.Popen(command, stdout = subprocess.PIPE)
                     for line in proc.stdout:
