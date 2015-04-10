@@ -38,8 +38,8 @@ def main():
                 default=default_config.getboolean('HooRex', 'multilevel'),
                 help="after finding immediate requirers, show who requires those")
     parser.add_argument("-d", "--debug", action="store_true", dest="debug_mode",
-                default=default_config.getboolean('HooRex', 'verbose'),
-                help="be verbose - show lots of additional information, \
+                default=default_config.getboolean('HooRex', 'debug'),
+                help="show additional additional debugging information, \
                     not just calculated package names")
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
@@ -196,7 +196,7 @@ def load_user_config():
         user_config.add_section('HooRex')
         user_config.set('HooRex', 'force', 'False')
         user_config.set('HooRex', 'multilevel', 'False')
-        user_config.set('HooRex', 'verbose', 'False')
+        user_config.set('HooRex', 'debug', 'False')
 
         with open(config_file, 'wb') as configfile:
             user_config.write(configfile)

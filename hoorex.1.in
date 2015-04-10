@@ -1,0 +1,83 @@
+HooRex(1)
+=========
+:doctype: manpage
+
+
+NAME
+----
+hoorex - shows which other packages in a SlackBuilds.org (SBo) repository
+	depend on a given package(s)
+
+
+SYNOPSIS
+--------
+*hoorex* ['OPTIONS'] PKG [PKG ...]
+
+
+DESCRIPTION
+-----------
+The hoorex(1) command outputs the name(s) of packages in the SBo repository
+tree which depend on the PKG(s) given on the command line.
+
+
+OPTIONS
+-------
+*-d, --debug*::
+    Show additional informational and debugging output.
+
+*-f, --force*::
+    Force reconstruction of the internal database.
+
+*-h, --help*::
+    Show HooRex help message.
+
+*-m, --multilevel*::
+    Normally, hoorex outputs the names of packages which directly
+    depend on the target PKG(s). In *multilevel* mode, these
+    directly depending packages are also processed to find which
+    packages depend on them; this process is continued until no
+    further depending packages are found.
+
+*-s, --slackbuilds* 'SBO_DIRECTORY'::
+    Specify full path to the *slackbuilds* directory containing
+    the full SlackBuilds.org repository tree.
+
+*--version*::
+    Print program version number.
+
+
+USAGE
+-----
+Usage
+
+
+FILES
+-----
+*~/.config/hoorex/default.cfg*::
+    Contains user defaults and preferences
+*~/.local/share/hoorex/repoData.pkl*::
+    Contains the hoorex database of repo information. It is generated
+    automatically if it doesn't already exist
+    or whenever the -f option is invoked.
+
+
+BUGS
+----
+See the HooRex distribution BUGS file.
+
+
+AUTHOR
+------
+HooRex was originally written by Christoph Willing.
+
+
+RESOURCES
+---------
+GitHub: <https://github.com/cwilling/hoorex>
+
+
+COPYING
+-------
+Copyright \(C) 2015 Christoph Willing. Free use of this software is
+granted under the terms of the GNU General Public License (GPL).
+
