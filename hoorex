@@ -12,6 +12,7 @@ from xdg.BaseDirectory import *
 import argparse
 import logging
 import ConfigParser
+import re
 
 
 # How we were called
@@ -149,6 +150,7 @@ def main():
 def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData):
     here = os.getcwd()
     os.chdir(sbo_path)
+    reg = re.compile('(?P<name>\w+)(\=\"(?P<value>.*))*\"')
 
     for dirpath, dirnames, filenames in os.walk('.'):
         for filenm in filenames:
@@ -157,13 +159,17 @@ def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData):
                 #print(os.path.join(dirpath, filenm))
                 pkgname = os.path.split(dirpath)[-1]
                 if pkgname + '.info' == filenm:
-                    command = ['bash', '-c', 'source ' + os.path.join(dirpath, filenm) + ' && echo $' + 'REQUIRES']
-                    proc = subprocess.Popen(command, stdout = subprocess.PIPE)
-                    for line in proc.stdout:
-                        result = line
-                    proc.communicate()
-                    #print("Adding %s ----- (%s)" % (pkgname, line.strip()))
-                    PkgRequires[pkgname] = line.split()
+                    for line in open(os.path.join(dirpath, filenm)):
+                        m = reg.match(line)
+                        if m:
+                            name = m.group('name')
+                            if name == 'REQUIRES':
+                                value = ''
+                                if m.group('value'):
+                                    value = m.group('value')
+                                #print("Adding %s ----- (%s)" % (pkgname, value))
+                                PkgRequires[pkgname] = value.split()
+
                     #if target in line.split():
                     #    print("%s needs %s" % (filenm, target))
     #print
