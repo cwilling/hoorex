@@ -31,6 +31,10 @@ OPTIONS
 *-h, --help*::
     Show HooRex *help* message.
 
+*-l, --long*::
+    Show category of each resulting package as well as the package
+    e.g. libraries/json-c
+
 *-m, --multilevel*::
     Normally, hoorex outputs the names of packages which directly
     depend on the target PKG(s). In *multilevel* mode, these

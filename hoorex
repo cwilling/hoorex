@@ -18,6 +18,8 @@ import re
 # How we were called
 (apppath, appname) = os.path.split(sys.argv[0])
 
+VERSION = '0.5.1'
+
 logging.basicConfig(format='%(levelname)s: %(message)s')
 hlog = logging.getLogger(appname)
 
@@ -42,10 +44,13 @@ def main():
                 default=default_config.getboolean('HooRex', 'debug'),
                 help="show additional additional debugging information, \
                     not just calculated package names")
+    parser.add_argument("-l", "--long", action="store_true", dest="output_long",
+                default=default_config.getboolean('HooRex', 'output_long'),
+                help="show containing directory (category) for each package")
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
-    parser.add_argument("-v", "--version", action="help",
+    parser.add_argument("-v", "--version", dest="app_version", action="store_true",
                 help="display version number")
     parser.add_argument("target", metavar='PKG', type=str, nargs='*',
                 help="package(s) to process")
@@ -57,6 +62,9 @@ def main():
         pipe_targets = sys.stdin.read().split()
     else:
         pipe_targets = []
+
+    if args.app_version:
+        print(VERSION)
 
     if args.debug_mode:
         hlog.setLevel(logging.DEBUG)
@@ -83,6 +91,7 @@ def main():
     SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
 
     PkgRequires = dict()
+    PkgCategory = dict()
     PkgNeededBy = dict()
     PkgData = dict()
 
@@ -94,15 +103,17 @@ def main():
         pkl_file.close()
         PkgRequires = PkgData['PkgRequires']
         PkgNeededBy = PkgData['PkgNeededBy']
+        PkgCategory = PkgData['PkgCategory']
         hlog.debug("PkgData loaded from file OK")
     else:
         if args.force == True:
             hlog.debug("(re)build of repo data forced by -f option - please wait ...")
         elif not os.path.exists(SAVED_DATA):
             hlog.debug("Couldn't open data file, generating new data - please wait ...")
-        build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData)
+        build_dicts(sbo_path, PkgRequires, PkgCategory, PkgNeededBy, PkgData)
         PkgData['PkgRequires'] = PkgRequires
         PkgData['PkgNeededBy'] = PkgNeededBy
+        PkgData['PkgCategory'] = PkgCategory
         output = open(SAVED_DATA, 'wb')
         # Pickle the list using the highest protocol available.
         pickle.dump(PkgData, output, -1)
@@ -140,14 +151,20 @@ def main():
     # Everything (including initial pkgs enquired about)
     hlog.debug(multi_list)
 
-    # Output
+    # OUTPUT
     for requirers in multi_list:
         for req in requirers:
-            print(req, end=' ')
+            if args.output_long:
+                print(os.path.join(PkgCategory[req], req), end=' ')
+            else:
+                print(req, end=' ')
     print()
 
 
-def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData, deptarget='REQUIRES'):
+def build_dicts(sbo_path,
+                PkgRequires, PkgCategory, PkgNeededBy, PkgData,
+                deptarget='REQUIRES'):
+
     here = os.getcwd()
     os.chdir(sbo_path)
     hlog.debug("Using %s to index dependencies" % deptarget)
@@ -162,8 +179,9 @@ def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData, deptarget='REQUIRES
     for dirpath, dirnames, filenames in os.walk('.'):
         for filenm in filenames:
             if fnmatch.fnmatch(filenm, '*.info'):
-                #print(os.path.split(dirpath)[-1])
+                #print(os.path.split(dirpath)[0].strip('.').strip('/'))
                 #print(os.path.join(dirpath, filenm))
+                category = os.path.split(dirpath)[0].strip('.').strip('/')
                 pkgname = os.path.split(dirpath)[-1]
                 if pkgname + '.info' == filenm:
                     with open(os.path.join(dirpath, filenm), 'rb') as f:
@@ -175,6 +193,7 @@ def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData, deptarget='REQUIRES
                             value = m.group('value')
                         hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
                         PkgRequires[pkgname] = value.split()
+                        PkgCategory[pkgname] = os.path.split(dirpath)[0].strip('.').strip('/')
 
     #print
     hlog.debug("Step 1 done - %d entries" % len(PkgRequires))
@@ -205,6 +224,7 @@ def load_user_config():
             pass
         user_config.add_section('HooRex')
         user_config.set('HooRex', 'force', 'False')
+        user_config.set('HooRex', 'output_long', 'False')
         user_config.set('HooRex', 'multilevel', 'False')
         user_config.set('HooRex', 'debug', 'False')
 
