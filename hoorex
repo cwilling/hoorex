@@ -51,7 +51,7 @@ def main():
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
     parser.add_argument("-v", "--version", dest="app_version", action="store_true",
-                help="display version number")
+                help="display version number and exit")
     parser.add_argument("target", metavar='PKG', type=str, nargs='*',
                 help="package(s) to process")
 
@@ -65,6 +65,7 @@ def main():
 
     if args.app_version:
         print(VERSION)
+        sys.exit(0)
 
     if args.debug_mode:
         hlog.setLevel(logging.DEBUG)
@@ -90,9 +91,7 @@ def main():
         os.mkdir(data_dir)
     SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
 
-    PkgRequires = dict()
-    PkgCategory = dict()
-    PkgNeededBy = dict()
+    # Our personal database of package relationships
     PkgData = dict()
 
     if args.force == False and os.path.exists(SAVED_DATA):
@@ -101,23 +100,20 @@ def main():
         pkl_file = open(SAVED_DATA, 'rb')
         PkgData = pickle.load(pkl_file)
         pkl_file.close()
-        PkgRequires = PkgData['PkgRequires']
-        PkgNeededBy = PkgData['PkgNeededBy']
-        PkgCategory = PkgData['PkgCategory']
         hlog.debug("PkgData loaded from file OK")
     else:
         if args.force == True:
             hlog.debug("(re)build of repo data forced by -f option - please wait ...")
         elif not os.path.exists(SAVED_DATA):
             hlog.debug("Couldn't open data file, generating new data - please wait ...")
-        build_dicts(sbo_path, PkgRequires, PkgCategory, PkgNeededBy, PkgData)
-        PkgData['PkgRequires'] = PkgRequires
-        PkgData['PkgNeededBy'] = PkgNeededBy
-        PkgData['PkgCategory'] = PkgCategory
+        build_dicts(sbo_path, PkgData)
         output = open(SAVED_DATA, 'wb')
         # Pickle the list using the highest protocol available.
         pickle.dump(PkgData, output, -1)
         output.close()
+    PkgRequires = PkgData['PkgRequires']
+    PkgNeededBy = PkgData['PkgNeededBy']
+    PkgCategory = PkgData['PkgCategory']
 
     multilevel_depth = 0
     targets = set(pipe_targets + args.target)
@@ -161,9 +157,7 @@ def main():
     print()
 
 
-def build_dicts(sbo_path,
-                PkgRequires, PkgCategory, PkgNeededBy, PkgData,
-                deptarget='REQUIRES'):
+def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
 
     here = os.getcwd()
     os.chdir(sbo_path)
@@ -175,6 +169,10 @@ def build_dicts(sbo_path,
     else:
         hlog.critical("Unknown dependency target name (%s)" % deptarget)
         return
+
+    PkgRequires = dict()
+    PkgCategory = dict()
+    PkgNeededBy = dict()
 
     for dirpath, dirnames, filenames in os.walk('.'):
         for filenm in filenames:
@@ -192,8 +190,8 @@ def build_dicts(sbo_path,
                         if m.group('value'):
                             value = m.group('value')
                         hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
+                        PkgCategory[pkgname] = category
                         PkgRequires[pkgname] = value.split()
-                        PkgCategory[pkgname] = os.path.split(dirpath)[0].strip('.').strip('/')
 
     #print
     hlog.debug("Step 1 done - %d entries" % len(PkgRequires))
@@ -207,6 +205,10 @@ def build_dicts(sbo_path,
                     PkgNeededBy[required] = []
                 PkgNeededBy[required].extend(k.split())
     hlog.debug("Step 2 done - %d entries" % len(PkgNeededBy))
+
+    PkgData['PkgRequires'] = PkgRequires
+    PkgData['PkgNeededBy'] = PkgNeededBy
+    PkgData['PkgCategory'] = PkgCategory
 
     os.chdir(here)
 

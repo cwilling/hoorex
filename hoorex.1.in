@@ -47,7 +47,7 @@ OPTIONS
     the full SlackBuilds.org repository tree.
 
 *--version*::
-    Print program version number.
+    Show program version number and exit immediately.
 
 
 USAGE
