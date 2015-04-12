@@ -147,10 +147,17 @@ def main():
     print()
 
 
-def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData):
+def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData, deptarget='REQUIRES'):
     here = os.getcwd()
     os.chdir(sbo_path)
-    reg = re.compile('(?P<name>REQUIRES)="(?P<value>.*?)"', re.DOTALL)
+    hlog.debug("Using %s to index dependencies" % deptarget)
+    if deptarget == 'PREREQS':
+        reg = re.compile('(?P<name>PREREQS)="(?P<value>.*?)"', re.DOTALL)
+    elif deptarget == 'REQUIRES':
+        reg = re.compile('(?P<name>REQUIRES)="(?P<value>.*?)"', re.DOTALL)
+    else:
+        hlog.critical("Unknown dependency target name (%s)" % deptarget)
+        return
 
     for dirpath, dirnames, filenames in os.walk('.'):
         for filenm in filenames:
@@ -163,13 +170,11 @@ def build_dicts(sbo_path, PkgRequires, PkgNeededBy, PkgData):
                         txt = f.read()
                     m = reg.search(txt)
                     if m:
-                        name = m.group('name')
-                        if name == 'REQUIRES':
-                            value = ''
-                            if m.group('value'):
-                                value = m.group('value')
-                            #print("Adding %s ----- (%s)" % (pkgname, value))
-                            PkgRequires[pkgname] = value.split()
+                        value = ''
+                        if m.group('value'):
+                            value = m.group('value')
+                        hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
+                        PkgRequires[pkgname] = value.split()
 
     #print
     hlog.debug("Step 1 done - %d entries" % len(PkgRequires))
