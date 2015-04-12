@@ -23,13 +23,13 @@ tree which depend on the PKG(s) given on the command line.
 OPTIONS
 -------
 *-d, --debug*::
-    Show additional informational and debugging output.
+    Show additional informational and *debugging* output.
 
 *-f, --force*::
-    Force reconstruction of the internal database.
+    *Force* reconstruction of the internal cross reference index.
 
 *-h, --help*::
-    Show HooRex help message.
+    Show HooRex *help* message.
 
 *-m, --multilevel*::
     Normally, hoorex outputs the names of packages which directly
@@ -48,7 +48,47 @@ OPTIONS
 
 USAGE
 -----
-Usage
+When hoorex is run for the first time it will attempt to scan the local
+slackbuilds directory tree and create an internal index of the dependency
+relationships between all the packages found there. Since it will have
+no idea where the slackbuilds directory tree is located, hoorex must be
+run again, this time with the *-s* (*--slackbuilds*) option e.g.
+
+	hoorex -s /home/kim/slackbuilds
+
+Now, when run again, hoorex will proceed with creating its dependency
+index This takes about 15sec., but is nominally a once only operation
+since the result is saved for future use. After the index is created
+and saved, queries are close to instantaneous. The indexing procedure
+may be forced at any time using the *-f* (*--force*) option. This is
+only required if there is some change in the slackbuilds repository,
+such as an update or change to a different git branch with local
+changes.
+
+Running hoorex with some target package name(s) as argument(s) returns
+the names of those packages which directly depend on the target package(s).
+If package A is directly depended on by packages B, C and D, then
+running 'hoorex A' will return A B C D.
+
+It may be that any of the depending packages B, C or D may be depended
+on by some other package(s). In turn, these may themselves be depended
+on by further packages. The full chain of depending packages can be
+seen by running hoorex with the *-m* (*--multilievel*) option e.g.
+
+	hoorex -m json-c
+
+Package names may also be passed to hoorex from stdin using a pipe.
+Package names input via a pipe are added to any named as an argument i.e.
+
+        echo jason-c | hoorex speex
+
+is equivalent to
+
+        hoorex json-c speex
+
+or
+
+        echo json-c speex | hoorex
 
 
 FILES
@@ -56,8 +96,8 @@ FILES
 *~/.config/hoorex/default.cfg*::
     Contains user defaults and preferences
 *~/.local/share/hoorex/repoData.pkl*::
-    Contains the hoorex database of repo information. It is generated
-    automatically if it doesn't already exist
+    Contains the hoorex cross reference index of repo information.
+    It is generated automatically if it doesn't already exist
     or whenever the -f option is invoked.
 
 
