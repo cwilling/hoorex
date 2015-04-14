@@ -171,10 +171,13 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
         hlog.critical("Unknown dependency target name (%s)" % deptarget)
         return
 
+    BasicRequires = dict()
     PkgRequires = dict()
     PkgCategory = dict()
     PkgNeededBy = dict()
 
+    # Step 1 - Create record of all SBo apps and their direct deps.
+    #          Save as BasicRequires (which is later extended into PkgRequires)
     for dirpath, dirnames, filenames in os.walk('.'):
         for filenm in filenames:
             if fnmatch.fnmatch(filenm, '*.info'):
@@ -192,11 +195,39 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
                             value = m.group('value')
                         hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
                         PkgCategory[pkgname] = category
-                        PkgRequires[pkgname] = value.split()
+                        BasicRequires[pkgname] = value.split()
 
     #print
-    hlog.debug("Step 1 done - %d entries" % len(PkgRequires))
+    hlog.debug("Step 1 done - %d entries" % len(BasicRequires))
 
+    # Step 2 - Find extended requirements by traversing dependency tree.
+    #          Save result as PkgRequires
+    for (k,v) in BasicRequires.iteritems():
+        multilevel_depth = 0
+        targets = v
+        multi_list = []
+        multi_list.extend(targets)
+        while True:
+            if len(targets) < 1:
+                break
+
+            pkglist = []
+            for package in targets:
+                if BasicRequires.has_key(package):
+                    pkglist.extend(BasicRequires[package])
+
+            if len(pkglist) > 0:
+                multi_list.extend(pkglist)
+            targets = list(set(pkglist))
+            multilevel_depth += 1
+            if multilevel_depth > DEPTH_LIMIT:
+                break
+
+        PkgRequires[k] = multi_list
+
+
+    # Step 3 - Generate record of which other pkgs require each SBo pkg
+    #          Save as PkgNeededBy
     for k, v in PkgRequires.iteritems():
         #print("%s ----- %s" % (k, v))
         if len(v) > 0:
