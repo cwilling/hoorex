@@ -149,12 +149,21 @@ def main():
     hlog.debug(multi_list)
 
     # OUTPUT
-    for requirers in multi_list:
-        for req in requirers:
-            if args.output_long:
-                print(os.path.join(PkgCategory[req], req), end=' ')
-            else:
-                print(req, end=' ')
+
+    # Flatten multi_list into a straight list named raw_output
+    # (ready for sorting)
+    raw_output = []
+    for pkgs in multi_list:
+        for prereq in pkgs:
+            raw_output.append(prereq)
+
+    sorted_output = sort_output(list(set(raw_output)), PkgRequires)
+    for req in sorted_output:
+        if args.output_long:
+            print(os.path.join(PkgCategory[req], req), end=' ')
+        else:
+            print(req, end=' ')
+
     print()
 
 
@@ -283,6 +292,38 @@ def user_config_set(user_config, key, value):
         user_config.write(configfile)
     configfile.close()
 
+def sort_output(rawpkgdata, PkgRequires):
+    orderedpkgdata = []
+
+    # Continuously cycle through rawpkgdata
+    # looking for an element with no dependencies still in rawpkgdata
+    # at which time it is removed and added to the sorted list.
+    # i.e. packages which are now strictly dependencies of others still
+    # in the list (i.e. have no deps of their own in the rawpkgdata list)
+    # are moved to sorted list before those which depend on them.
+    # The sorted list can be guaranteed to have no member appearing in it
+    # before any of its dependencies
+    while True:
+        for x in range(0, len(rawpkgdata)):
+            if x >= len(rawpkgdata):
+                continue
+
+            has_dep = False
+            prereqs = rawpkgdata[x].split() + PkgRequires[rawpkgdata[x]]
+            for y in range(0, len(rawpkgdata)):
+                #hlog.debug("Looking for %s in %s prereqs: %s" %(rawpkgdata[y], rawpkgdata[x], prereqs))
+                if not rawpkgdata[y] == rawpkgdata[x] and rawpkgdata[y] in prereqs:
+                    has_dep = True
+                    hlog.debug("%s still needed (in %s)" %(rawpkgdata[y], rawpkgdata[x]))
+                    continue
+            if not has_dep:
+                hlog.debug("Moving %s to sorted queue" % rawpkgdata[x])
+                orderedpkgdata.append(rawpkgdata.pop(x))
+
+        if len(rawpkgdata) == 0:
+            break
+
+    return orderedpkgdata
 
 if __name__ == '__main__':
     main()
