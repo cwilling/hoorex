@@ -18,8 +18,7 @@ import re
 # How we were called
 (apppath, appname) = os.path.split(sys.argv[0])
 
-with open('VERSION.txt', 'rb') as f:
-    VERSION = f.read().strip()
+HOOREX_VERSION = '0.5.3'
 
 logging.basicConfig(format='%(levelname)s: %(message)s')
 hlog = logging.getLogger(appname)
@@ -54,7 +53,7 @@ def main():
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
-    parser.add_argument("-v", "--version", dest="app_version", action="store_true",
+    parser.add_argument("-V", "--version", dest="app_version", action="store_true",
                 help="display version number and exit")
     parser.add_argument("target", metavar='PKG', type=str, nargs='*',
                 help="package(s) to process")
@@ -68,7 +67,7 @@ def main():
         pipe_targets = []
 
     if args.app_version:
-        print(VERSION)
+        print(HOOREX_VERSION)
         sys.exit(0)
 
     if args.debug_mode:
