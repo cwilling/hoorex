@@ -48,6 +48,9 @@ def main():
     parser.add_argument("-l", "--long", action="store_true", dest="output_long",
                 default=default_config.getboolean('HooRex', 'output_long'),
                 help="show containing directory (category) for each package")
+    parser.add_argument("-r", "--reverse", action="store_true", dest="reverse_lookup",
+                default=default_config.getboolean('HooRex', 'reverse_lookup'),
+                help="show build dependencies for target package(s)")
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
@@ -112,52 +115,58 @@ def main():
         # Pickle the list using the highest protocol available.
         pickle.dump(PkgData, output, -1)
         output.close()
+
     PkgRequires = PkgData['PkgRequires']
     PkgNeededBy = PkgData['PkgNeededBy']
     PkgCategory = PkgData['PkgCategory']
 
-    multilevel_depth = 0
-    targets = set(pipe_targets + args.target)
-    hlog.debug("Processing initial targets of: %s" % targets)
     multi_list = []
-    multi_list.append(targets)
-    while True:
-        if len(targets) < 1:
-            break
-        hlog.debug("At LEVEL %d, required by: %s" % (multilevel_depth, targets))
-        pkglist = []
+    targets = list(set(pipe_targets + args.target))
+    hlog.debug("Processing initial targets of: %s" % targets)
+    if args.reverse_lookup:
+        hlog.debug("REVERSE mode set at command line")
+        multi_list.append(targets)
         for package in targets:
             if PkgRequires.has_key(package):
-                if PkgNeededBy.has_key(package):
-                    hlog.debug("\t%s is needed by: %s" % (package, PkgNeededBy[package]))
-                    pkglist.extend(PkgNeededBy[package])
+                multi_list.append(PkgRequires[package])
+    else:
+        multilevel_depth = 0
+        multi_list.append(targets)
+        while True:
+            if len(targets) < 1:
+                break
+            hlog.debug("At LEVEL %d, required by: %s" % (multilevel_depth, targets))
+            pkglist = []
+            for package in targets:
+                if PkgRequires.has_key(package):
+                    if PkgNeededBy.has_key(package):
+                        hlog.debug("\t%s is needed by: %s" % (package, PkgNeededBy[package]))
+                        pkglist.extend(PkgNeededBy[package])
+                    else:
+                        hlog.debug("\t%s isn't needed by any other package" % package)
                 else:
-                    hlog.debug("\t%s isn't needed by any other package" % package)
-            else:
-                hlog.debug("\tSkipping package \"%s\" (unknown package)" % package)
+                    hlog.debug("\tSkipping package \"%s\" (unknown package)" % package)
 
-        if len(pkglist) > 0:
-            multi_list.append(pkglist)
-        if not args.multilevel or len(targets) < 1:
-            break
-        targets = list(set(pkglist))
-        multilevel_depth += 1
-        if multilevel_depth > DEPTH_LIMIT:
-            break
+            if len(pkglist) > 0:
+                multi_list.append(pkglist)
+            if not args.multilevel or len(targets) < 1:
+                break
+            targets = list(set(pkglist))
+            multilevel_depth += 1
+            if multilevel_depth > DEPTH_LIMIT:
+                break
 
     # Everything (including initial pkgs enquired about)
     hlog.debug(multi_list)
 
-    # OUTPUT
-
-    # Flatten multi_list into a straight list named raw_output
-    # (ready for sorting)
+    # Flatten multi_list and sort for output
     raw_output = []
     for pkgs in multi_list:
         for prereq in pkgs:
             raw_output.append(prereq)
-
     sorted_output = sort_output(list(set(raw_output)), PkgRequires)
+
+    # OUTPUT
     for req in sorted_output:
         if args.output_long:
             print(os.path.join(PkgCategory[req], req), end=' ')
@@ -269,6 +278,7 @@ def load_user_config():
         user_config.set('HooRex', 'force', 'False')
         user_config.set('HooRex', 'output_long', 'False')
         user_config.set('HooRex', 'multilevel', 'False')
+        user_config.set('HooRex', 'reverse_lookup', 'False')
         user_config.set('HooRex', 'debug', 'False')
 
         with open(config_file, 'wb') as configfile:

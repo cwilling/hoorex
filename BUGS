@@ -1,6 +1,4 @@
 Can't edit configuration options from within the app.
 (need to manually edit the defaults.cfg file)
 
-Show output packages in the order required for correct compilation (feature).
-
-Show instead which packages are required (rather than which package(s) require)
+Can't save output to a file (except by output redirection)

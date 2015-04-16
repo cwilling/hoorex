@@ -6,7 +6,9 @@ HooRex(1)
 NAME
 ----
 hoorex - shows which other packages in a SlackBuilds.org (SBo) repository
-	depend on a given package(s)
+	depend on a given package(s). The result list of packages is
+	ordered such that build dependencies are given before dependent
+	packages.
 
 
 SYNOPSIS
@@ -17,7 +19,18 @@ SYNOPSIS
 DESCRIPTION
 -----------
 The hoorex(1) command outputs the name(s) of packages in the SBo repository
-tree which depend on the PKG(s) given on the command line.
+tree which depend on the target PKG(s) given on the command line.
+Alternatively, using the *-r, --reverse* option, hoorex outputs the
+complete depenedency tree for the target PKG(s). In both these modes,
+output packages are shown in "build order" i.e. any which packages are
+build dependencies of others in the result list are output before those
+which depend on them.
+
+The main purpose of HooRex is to show all other packages which depend
+on the target(s) and which might therefore be affected by some change in the
+target. Combining this standard mode with the reverse mode results in an
+exhaustive listing of all packages that might need to be (re)built in such
+a situation.
 
 
 OPTIONS
@@ -41,6 +54,11 @@ OPTIONS
     directly depending packages are also processed to find which
     packages depend on them; this process is continued until no
     further depending packages are found.
+
+*-r, --reverse*::
+    *Reverse* the default calculation of dependency tree i.e. instead of
+    determining which other packages require the target package(s),
+    calculate which packages are required to build the target package(s).
 
 *-s, --slackbuilds* 'SBO_DIRECTORY'::
     Specify full path to the *slackbuilds* directory containing
@@ -93,6 +111,14 @@ is equivalent to
 or
 
         echo json-c speex | hoorex
+
+A typical use of this ability is to pipe the output of a normal hoorex
+instance into a second *-r* (*--reverse*) instance e.g.
+
+	hoorex -m speex | hoorex -r
+
+which first determines all the packages which somehow depend on speex
+and then calculates all the packages required to build them.
 
 
 FILES
