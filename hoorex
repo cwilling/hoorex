@@ -44,6 +44,9 @@ def main():
                 default=default_config.getboolean('HooRex', 'debug'),
                 help="show additional additional debugging information, \
                     not just calculated package names")
+    parser.add_argument("-1", "--column", action="store_true", dest="output_column",
+                default=default_config.getboolean('HooRex', 'output_column'),
+                help="show output as a sinlge column")
     parser.add_argument("-l", "--long", action="store_true", dest="output_long",
                 default=default_config.getboolean('HooRex', 'output_long'),
                 help="show containing directory (category) for each package")
@@ -169,11 +172,18 @@ def main():
     # OUTPUT
     for req in sorted_output:
         if args.output_long:
-            print(os.path.join(PkgCategory[req], req), end=' ')
+            if args.output_column:
+                print(os.path.join(PkgCategory[req], req))
+            else:
+                print(os.path.join(PkgCategory[req], req), end=' ')
         else:
-            print(req, end=' ')
+            if args.output_column:
+                print(req)
+            else:
+                print(req, end=' ')
 
-    print()
+    if not args.output_column:
+        print()
 
 
 def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
@@ -274,29 +284,57 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
 
 
 def load_user_config():
+    # Try to load the user's configuration
+    # Create one if it doesn't already exist
+
     config_dir = os.path.join(xdg_config_home, appname)
     config_file = os.path.join(config_dir, 'defaults.cfg')
     user_config = ConfigParser.ConfigParser()
+    dirty = False
 
-    # No user configuration file exists so generate a default one
     if not os.path.isdir(config_dir) or not os.path.exists(config_file):
+        dirty = True
         try:
             os.mkdir(config_dir)
         except:
             pass
-        user_config.add_section('HooRex')
-        user_config.set('HooRex', 'force', 'False')
-        user_config.set('HooRex', 'output_long', 'False')
-        user_config.set('HooRex', 'multilevel', 'False')
-        user_config.set('HooRex', 'reverse_lookup', 'False')
-        user_config.set('HooRex', 'debug', 'False')
-
-        with open(config_file, 'wb') as configfile:
-            user_config.write(configfile)
-        configfile.close()
     else:
         user_config.read(config_file)
+
+    if not user_config.has_section('HooRex'):
+        dirty = True
+        user_config.add_section('HooRex')
+
+    if not user_config.has_option('HooRex', 'force'):
+        dirty = True
+        user_config.set('HooRex', 'force', 'False')
+
+    if not user_config.has_option('HooRex', 'output_column'):
+        dirty = True
+        user_config.set('HooRex', 'output_column', 'False')
+
+    if not user_config.has_option('HooRex', 'output_long'):
+        dirty = True
+        user_config.set('HooRex', 'output_long', 'False')
+
+    if not user_config.has_option('HooRex', 'multilevel'):
+        dirty = True
+        user_config.set('HooRex', 'multilevel', 'False')
+
+    if not user_config.has_option('HooRex', 'reverse_lookup'):
+        dirty = True
+        user_config.set('HooRex', 'reverse_lookup', 'False')
+
+    if not user_config.has_option('HooRex', 'debug'):
+        dirty = True
+        user_config.set('HooRex', 'debug', 'False')
+
+    if dirty:
+        with open(config_file, 'wb') as configfile:
+            user_config.write(configfile)
+
     return user_config
+
 
 def find_sbo_path():
     hlog.critical("SBO_PATH is not set. Please set it using the -s (--slackbuilds) option e.g.\n hoorex -s /home/thomas/slackbuilds")

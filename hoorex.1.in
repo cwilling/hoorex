@@ -44,6 +44,10 @@ OPTIONS
 *-h, --help*::
     Show HooRex *help* message.
 
+*-1, --column*::
+    Show output as a single column i.e. newline separated rather than
+    space separated
+
 *-l, --long*::
     Show category of each resulting package as well as the package
     e.g. libraries/json-c
