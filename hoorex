@@ -50,6 +50,12 @@ def main():
     parser.add_argument("-l", "--long", action="store_true", dest="output_long",
                 default=default_config.getboolean('HooRex', 'output_long'),
                 help="show containing directory (category) for each package")
+    parser.add_argument("-i", "--installed", action="store_true", dest="output_installed",
+                default=default_config.getboolean('HooRex', 'output_installed'),
+                help="show only packages already installed, except that target package(s) are included even if not already installed")
+    parser.add_argument("-I", "--installed_strict", action="store_true", dest="output_strictly_installed",
+                default=False,
+                help="really show only packages already installed, not even target packages")
     parser.add_argument("-r", "--reverse", action="store_true", dest="reverse_lookup",
                 default=default_config.getboolean('HooRex', 'reverse_lookup'),
                 help="show build dependencies for target package(s)")
@@ -178,12 +184,21 @@ def main():
     # Everything (including initial pkgs enquired about)
     hlog.debug(multi_list)
 
-    # Flatten multi_list and sort for output
+    # Flatten multi_list, then filter and sort for output
     raw_output = []
     for pkgs in multi_list:
         for prereq in pkgs:
             raw_output.append(prereq)
-    sorted_output = sort_output(list(set(raw_output)), PkgRequires)
+    # Filter the list, if necessary
+    if args.output_installed or args.output_strictly_installed:
+        repo_path = default_config.get('HooRex', 'slackware_repo')
+        if args.output_strictly_installed:
+            all_installed = ['-'.join(pkgname.split('-')[:-3]) for pkgname in os.listdir(repo_path)]
+        else:
+            all_installed = set(targets + ['-'.join(pkgname.split('-')[:-3]) for pkgname in os.listdir(repo_path)])
+        sorted_output = sort_output([name for name in all_installed if name in set(raw_output)], PkgRequires)
+    else:
+        sorted_output = sort_output(list(set(raw_output)), PkgRequires)
 
     # OUTPUT
     for req in sorted_output:
@@ -333,6 +348,10 @@ def load_user_config():
         dirty = True
         user_config.set('HooRex', 'output_long', 'False')
 
+    if not user_config.has_option('HooRex', 'output_installed'):
+        dirty = True
+        user_config.set('HooRex', 'output_installed', 'False')
+
     if not user_config.has_option('HooRex', 'multilevel'):
         dirty = True
         user_config.set('HooRex', 'multilevel', 'False')
@@ -344,6 +363,10 @@ def load_user_config():
     if not user_config.has_option('HooRex', 'debug'):
         dirty = True
         user_config.set('HooRex', 'debug', 'False')
+
+    if not user_config.has_option('HooRex', 'slackware_repo'):
+        dirty = True
+        user_config.set('HooRex', 'slackware_repo', '/var/log/packages')
 
     if dirty:
         with open(config_file, 'wb') as configfile:
@@ -398,6 +421,7 @@ def sort_output(rawpkgdata, PkgRequires):
             break
 
     return orderedpkgdata
+
 
 if __name__ == '__main__':
     main()
