@@ -123,9 +123,16 @@ def main():
     PkgNeededBy = PkgData['PkgNeededBy']
     PkgCategory = PkgData['PkgCategory']
 
+    # This is our input - the package names being queried
+    # via pipe and/or command line. We strip off any category directory name
+    # that might be attached e.g. from the --long output of a previous stage
+    # of a pipeline.
+    targets = [os.path.split(t)[-1] for t in list(set(pipe_targets + args.target))]
+
+    # This is "raw" output (unsorted, unfiltered)
     multi_list = []
-    targets = list(set(pipe_targets + args.target))
-    # First check that the targets exist in the repo
+
+    # First check that the input targets exist in the repo
     bad_target = False
     for target in targets:
         if not PkgRequires.has_key(target):
