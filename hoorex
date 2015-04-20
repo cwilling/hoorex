@@ -125,6 +125,15 @@ def main():
 
     multi_list = []
     targets = list(set(pipe_targets + args.target))
+    # First check that the targets exist in the repo
+    bad_target = False
+    for target in targets:
+        if not PkgRequires.has_key(target):
+            bad_target = True
+            hlog.critical("Unknown package: %s" %target)
+    if bad_target:
+        sys.exit(2)
+
     hlog.debug("Processing initial targets of: %s" % targets)
     if args.reverse_lookup:
         hlog.debug("REVERSE mode set at command line")
