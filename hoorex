@@ -367,7 +367,7 @@ def sort_output(rawpkgdata, PkgRequires):
                 continue
 
             has_dep = False
-            prereqs = rawpkgdata[x].split() + PkgRequires[rawpkgdata[x]]
+            prereqs = rawpkgdata[x].split() + PkgRequires[os.path.split(rawpkgdata[x])[-1]]
             for y in range(0, len(rawpkgdata)):
                 #hlog.debug("Looking for %s in %s prereqs: %s" %(rawpkgdata[y], rawpkgdata[x], prereqs))
                 if not rawpkgdata[y] == rawpkgdata[x] and rawpkgdata[y] in prereqs:
