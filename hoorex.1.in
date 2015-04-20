@@ -135,9 +135,10 @@ and then calculates all the packages required to build them.
 Care should be taken when restricting output to those packages already
 installed
 (using *-i* (*--installed*) and *-I* (*--installed_strict*) options).
-These options should probably never be used at the same time as the
-*-r* (*--reverse*) option; in this case you need to know which packages
-will be needed regardless of whether they're already installed or not.
+In particular, these options should probably never be used at the same
+time as the *-r* (*--reverse*) option; in this case you need to know
+which packages will be needed regardless of whether they're already
+installed or not.
 
 
 EXIT STATUS
