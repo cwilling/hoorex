@@ -125,6 +125,15 @@ which first determines all the packages which somehow depend on speex
 and then calculates all the packages required to build them.
 
 
+EXIT STATUS
+------------
+*0*	All OK
+
+*1*	Path to SBo repository is not available
+
+*2*	Package name supplied to HooRex is unknown in the SBo repository
+
+
 FILES
 -----
 *~/.config/hoorex/default.cfg*::
