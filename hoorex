@@ -62,6 +62,8 @@ def main():
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
+    parser.add_argument("-T", "--test_repo", dest="test_repo", action="store_true",
+                help="use entire SBO repo as test case input")
     parser.add_argument("-V", "--version", dest="app_version", action="store_true",
                 help="display version number and exit")
     parser.add_argument("target", metavar='PKG', type=str, nargs='*',
@@ -133,7 +135,10 @@ def main():
     # via pipe and/or command line. We strip off any category directory name
     # that might be attached e.g. from the --long output of a previous stage
     # of a pipeline.
-    targets = [os.path.split(t)[-1] for t in list(set(pipe_targets + args.target))]
+    if args.test_repo:
+        targets = PkgRequires.keys()
+    else:
+        targets = [os.path.split(t)[-1] for t in list(set(pipe_targets + args.target))]
 
     # This is "raw" output (unsorted, unfiltered)
     multi_list = []
