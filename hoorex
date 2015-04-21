@@ -101,8 +101,11 @@ def main():
 
     # Repo Data
     data_dir = os.path.join(xdg_data_home, appname)
-    if not os.path.isdir(data_dir):
-        os.mkdir(data_dir)
+    try:
+        os.makedirs(data_dir)
+    except:
+        # ATM assume any exception is because the path already exists
+        pass
     SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
 
     # Our personal database of package relationships
@@ -328,12 +331,14 @@ def load_user_config():
     user_config = ConfigParser.ConfigParser()
     dirty = False
 
-    if not os.path.isdir(config_dir) or not os.path.exists(config_file):
+    try:
+        os.makedirs(config_dir)
+    except:
+        # ATM assume any exception is because the path already exists
+        pass
+
+    if not os.path.exists(config_file):
         dirty = True
-        try:
-            os.mkdir(config_dir)
-        except:
-            pass
     else:
         user_config.read(config_file)
 
