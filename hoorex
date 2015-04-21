@@ -18,7 +18,7 @@ import re
 # How we were called
 (apppath, appname) = os.path.split(sys.argv[0])
 
-HOOREX_VERSION = '0.5.3'
+HOOREX_VERSION = 'X.Y.Z'
 
 logging.basicConfig(format='%(levelname)s: %(message)s')
 hlog = logging.getLogger(appname)
