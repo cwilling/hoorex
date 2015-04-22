@@ -36,13 +36,16 @@
 <h3> <a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>HooRex overview</h3>
 
 
-<p>HooRex is a dependency calculator. It uses information from the REQUIRES field of the .info file for each package available in the SlackBuilds.org (SBo) repository.
+<p>HooRex is a dependency calculator. It is a python script with a run time dependency on pyxdg (available at SBo).
+It uses information from the REQUIRES field of the .info file for each package available in the SlackBuilds.org (SBo) repository.
 The initial motivation for creating HooRex was to know which other packages might be affected by a change to any particular package e.g. if a new version of <em>ffmpeg</em>
 is built and installed, which other packages, by virtue of their dependence on <em>ffmpeg</em>, might be affected - posssibly requiring to be rebuilt themselves?
 Of course it is possible to <em>find</em> all the .info files and <em>grep</em> for REQUIRES in them but the result is not clean enough, as is, for passing on to
 another program or script e.g. a build bot. Also its somewhat slow to do this (there are over 5000 packages in the SBo repo), especially when dealing with multiple packages.
 This (multiple packages to check) is almost always the situation after an update to the SBo repo when I want to know, programmatically, not just which of the updated packages to
 rebuild but also which other packages depend on the updated packages and so may need rebuilding as well. HooRex enables this quickly and painlessly.
+<p>HooRex's output is a list of package names which is arranged in <em>build order</em> i.e. any packages which are dependencies of others listed in the same output are shown
+before those others.
 
 <h3> <a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Next Section</h3>
 
