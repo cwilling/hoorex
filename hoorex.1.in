@@ -41,6 +41,11 @@ OPTIONS
 *-f, --force*::
     *Force* reconstruction of the internal cross reference index.
 
+*-g, --group* 'SBO_GROUP [SBO_GROUP ...]'::
+    Use a known group of packages as input. Groups that HooRex knows
+    about include the SBo categories (academic, accessibility, ...,
+    system). Another is the "all" group.
+
 *-h, --help*::
     Show HooRex *help* message.
 
@@ -139,6 +144,18 @@ In particular, these options should probably never be used at the same
 time as the *-r* (*--reverse*) option; in this case you need to know
 which packages will be needed regardless of whether they're already
 installed or not.
+
+Specifying a known group or multiple groups to HooRex enables painless
+querying of large numbers of packages. For instance to use all the
+packages in SBo's network and ruby categories as input to HooRex, run:
+
+	hoorex -g network ruby
+
+A special group is the *all* group which consists of all packages known
+to HooRex. To generate a build order for the entire SBo repository,
+run:
+
+	hoorex -g all -r
 
 
 EXIT STATUS

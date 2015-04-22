@@ -13,6 +13,7 @@ import argparse
 import logging
 import ConfigParser
 import re
+from string import printable
 
 
 # How we were called
@@ -44,6 +45,9 @@ def main():
                 default=default_config.getboolean('HooRex', 'debug'),
                 help="show additional additional debugging information, \
                     not just calculated package names")
+    parser.add_argument('-g', '--group', dest='sbo_group', action='store', nargs='+',
+                help="select all packages in the given SBo category \
+                    e.g. --group audio")
     parser.add_argument("-1", "--column", action="store_true", dest="output_column",
                 default=default_config.getboolean('HooRex', 'output_column'),
                 help="show output as a sinlge column")
@@ -62,8 +66,6 @@ def main():
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
-    parser.add_argument("-T", "--test_repo", dest="test_repo", action="store_true",
-                help="use entire SBO repo as test case input")
     parser.add_argument("-V", "--version", dest="app_version", action="store_true",
                 help="display version number and exit")
     parser.add_argument("target", metavar='PKG', type=str, nargs='*',
@@ -135,12 +137,22 @@ def main():
     PkgCategory = PkgData['PkgCategory']
 
     # This is our input - the package names being queried
-    # via pipe and/or command line. We strip off any category directory name
-    # that might be attached e.g. from the --long output of a previous stage
-    # of a pipeline.
-    if args.test_repo:
-        targets = PkgRequires.keys()
+    # via pipe and/or command line or a predefined group.
+    #
+    # First handle -g|--group
+    # Typically its a category of the SBo repo
+    # but we can define spcial groups ourselves here like the 'all' group.
+    if args.sbo_group:
+        targets = []
+        if 'all' in args.sbo_group:
+            targets = PkgCategory.keys()
+        for (k,v) in PkgCategory.iteritems():
+            if v in args.sbo_group:
+                targets.append(k)
     else:
+        # We strip off any category directory name
+        # that might be attached e.g. from the --long output of a previous stage
+        # of a pipeline.
         targets = [os.path.split(t)[-1] for t in list(set(pipe_targets + args.target))]
 
     # This is "raw" output (unsorted, unfiltered)
@@ -259,7 +271,8 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
                     if m:
                         value = ''
                         if m.group('value'):
-                            value = m.group('value')
+                            # Remove line continuation backslashes
+                            value = m.group('value').replace('\\', '')
                         hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
                         PkgCategory[pkgname] = category
                         DirectRequires[pkgname] = value.split()
