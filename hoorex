@@ -8,7 +8,6 @@ import sys, os
 import fnmatch
 import subprocess
 import pickle
-from xdg.BaseDirectory import *
 import argparse
 import logging
 import ConfigParser
@@ -20,6 +19,11 @@ from string import printable
 (apppath, appname) = os.path.split(sys.argv[0])
 
 HOOREX_VERSION = 'X.Y.Z'
+
+# XDG definitions
+_home = os.path.expanduser('~')
+xdg_data_home = os.environ.get('XDG_DATA_HOME') or os.path.join(_home, '.local', 'share')
+xdg_config_home = os.environ.get('XDG_CONFIG_HOME') or os.path.join(_home, '.config')
 
 logging.basicConfig(format='%(levelname)s: %(message)s')
 hlog = logging.getLogger(appname)
