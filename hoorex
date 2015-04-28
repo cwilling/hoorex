@@ -24,6 +24,9 @@ HOOREX_VERSION = 'X.Y.Z'
 logging.basicConfig(format='%(levelname)s: %(message)s')
 hlog = logging.getLogger(appname)
 
+# The field name to search for in .info files
+DEPTARGET = os.getenv('DEPTARGET','REQUIRES')
+
 # How far into requirements tree to go
 DEPTH_LIMIT  = 10
 
@@ -125,12 +128,25 @@ def main():
             hlog.debug("(re)build of repo data forced by -f option - please wait ...")
         elif not os.path.exists(SAVED_DATA):
             hlog.debug("Couldn't open data file, generating new data - please wait ...")
-        build_dicts(sbo_path, PkgData)
+        build_dicts(sbo_path, PkgData, deptarget=DEPTARGET)
         output = open(SAVED_DATA, 'wb')
         # Pickle the list using the highest protocol available.
         pickle.dump(PkgData, output, -1)
         output.close()
 
+    # At version 0.6.0, PkgData has an additional entry PkgDataInfo.
+    # Force an update if current repo doesn't have it
+    if not PkgData.has_key('PkgDataInfo'):
+        hlog.debug("(re)build of repo data forced by out of date data format - please wait ...")
+        build_dicts(sbo_path, PkgData, deptarget=DEPTARGET)
+        output = open(SAVED_DATA, 'wb')
+        # Pickle the list using the highest protocol available.
+        pickle.dump(PkgData, output, -1)
+        output.close()
+
+    PkgDataInfo = PkgData['PkgDataInfo']
+    hlog.debug("REPO has version %s    " % PkgDataInfo['hoorex_data_version'])
+    hlog.debug("REPO uses deptarget %s " % PkgDataInfo['deptarget'])
     DirectRequires = PkgData['DirectRequires']
     PkgRequires = PkgData['PkgRequires']
     PkgNeededBy = PkgData['PkgNeededBy']
@@ -208,7 +224,9 @@ def main():
     raw_output = []
     for pkgs in multi_list:
         for prereq in pkgs:
-            raw_output.append(prereq)
+            # Step 0 filter: only add it if we know about it
+            if PkgRequires.has_key(prereq):
+                raw_output.append(prereq)
     # Filter the list, if necessary
     if args.output_installed or args.output_strictly_installed:
         repo_path = default_config.get('HooRex', 'slackware_repo')
@@ -242,18 +260,23 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
     here = os.getcwd()
     os.chdir(sbo_path)
     hlog.debug("Using %s to index dependencies" % deptarget)
+    reg_requires = re.compile('(?P<name>REQUIRES)="(?P<value>.*?)"', re.DOTALL)
     if deptarget == 'PREREQS':
         reg = re.compile('(?P<name>PREREQS)="(?P<value>.*?)"', re.DOTALL)
     elif deptarget == 'REQUIRES':
-        reg = re.compile('(?P<name>REQUIRES)="(?P<value>.*?)"', re.DOTALL)
+        reg = reg_requires
     else:
         hlog.critical("Unknown dependency target name (%s)" % deptarget)
         return
 
+    PkgDataInfo = dict()
     DirectRequires = dict()
     PkgRequires = dict()
     PkgCategory = dict()
     PkgNeededBy = dict()
+
+    PkgDataInfo['hoorex_data_version'] = HOOREX_VERSION
+    PkgDataInfo['deptarget'] = deptarget
 
     # Step 1 - Create record of all SBo apps and their direct deps.
     #          Save as DirectRequires (which is later extended into PkgRequires)
@@ -276,6 +299,18 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
                         hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
                         PkgCategory[pkgname] = category
                         DirectRequires[pkgname] = value.split()
+                        # Expand any $REQUIRES in the list (as may be the case with some other DEPTARGET)
+                        if '$REQUIRES' in DirectRequires[pkgname]:
+                            requires_reg = reg_requires
+                            m = requires_reg.search(txt)
+                            if m:
+                                value = ''
+                                if m.group('value'):
+                                    # Remove line continuation backslashes
+                                    value = m.group('value').replace('\\', '')
+                                hlog.debug("Adding %s ----- (%s)" % (pkgname, value))
+                                DirectRequires[pkgname].remove('$REQUIRES')
+                                DirectRequires[pkgname].extend(value.split())
                         try:
                             DirectRequires[pkgname].remove('%README%')
                         except:
@@ -327,6 +362,7 @@ def build_dicts(sbo_path, PkgData, deptarget='REQUIRES'):
                 PkgNeededBy[required].extend(k.split())
     hlog.debug("Step 3 done - %d entries" % len(PkgNeededBy))
 
+    PkgData['PkgDataInfo'] = PkgDataInfo
     PkgData['DirectRequires'] = DirectRequires
     PkgData['PkgRequires'] = PkgRequires
     PkgData['PkgNeededBy'] = PkgNeededBy
