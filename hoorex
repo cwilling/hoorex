@@ -156,6 +156,14 @@ def main():
     PkgNeededBy = PkgData['PkgNeededBy']
     PkgCategory = PkgData['PkgCategory']
 
+    # Warn and exit if DEPTARGET doesn't match current data
+    if DEPTARGET != PkgDataInfo['deptarget']:
+        hlog.critical("Requested dependency field (%s) doesn't match current data (using %s)" % (DEPTARGET,PkgDataInfo['deptarget']))
+        hlog.critical("Please regenerate data index with something like:")
+        hlog.critical("\tDEPTARGET=%s hoorex -f" % DEPTARGET)
+        sys.exit(0)
+
+
     # This is our input - the package names being queried
     # via pipe and/or command line or a predefined group.
     #
