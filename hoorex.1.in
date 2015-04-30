@@ -81,6 +81,11 @@ OPTIONS
     Specify full path to the *slackbuilds* directory containing
     the full SlackBuilds.org repository tree.
 
+*-U, --unknown_strict*::
+    Unknown packages will normally be quietly ignored and HooRex will
+    continue if possible. The previous behaviour, to announce the
+    unknown package and exit, is invoked with this flag.
+
 *--version*::
     Show program version number and exit immediately.
 
@@ -165,6 +170,7 @@ EXIT STATUS
 *1*	Path to SBo repository is not available
 
 *2*	Package name supplied to HooRex is unknown in the SBo repository
+        (only when *-U* (*--unknown_strict*) flag is invoked)
 
 
 FILES

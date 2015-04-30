@@ -73,6 +73,9 @@ def main():
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
+    parser.add_argument("-U", "--unknown_strict", action="store_true", dest="unknown_strict",
+                default=default_config.getboolean('HooRex', 'unknown_strict'),
+                help="Be strict about about unknown package names - report them, then exit")
     parser.add_argument("-V", "--version", dest="app_version", action="store_true",
                 help="display version number and exit")
     parser.add_argument("target", metavar='PKG', type=str, nargs='*',
@@ -188,12 +191,16 @@ def main():
 
     # First check that the input targets exist in the repo
     bad_target = False
-    for target in targets:
+    for target in reversed(targets):
         if not PkgRequires.has_key(target):
             bad_target = True
-            hlog.critical("Unknown package: %s" %target)
-    if bad_target:
+            if args.unknown_strict:
+                hlog.critical("Unknown package: %s" %target)
+            else:
+                targets.remove(target)
+    if bad_target and args.unknown_strict:
         sys.exit(2)
+
 
     hlog.debug("Processing initial targets of: %s" % targets)
     if args.reverse_lookup:
@@ -430,6 +437,10 @@ def load_user_config():
     if not user_config.has_option('HooRex', 'reverse_lookup'):
         dirty = True
         user_config.set('HooRex', 'reverse_lookup', 'False')
+
+    if not user_config.has_option('HooRex', 'unknown_strict'):
+        dirty = True
+        user_config.set('HooRex', 'unknown_strict', 'False')
 
     if not user_config.has_option('HooRex', 'debug'):
         dirty = True

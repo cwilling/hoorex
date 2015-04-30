@@ -21,6 +21,7 @@ uninstall:
 
 clean:
 	rm -f hoorex.1
+	sed -i -e "s/^HOOREX_VERSION.*/HOOREX_VERSION = 'X.Y.Z'/" hoorex
 
 .PHONY: clean
 .PHONY: hoorex
