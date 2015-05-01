@@ -6,6 +6,3 @@ and manpage. Run (as root):
 REQUIREMENTS.
 -  the a2x utility (a Python script) is used to generate the man page
 so the python and linuxdoc-tools packages will need to be installed.
-
--  the hoorex application will itself will need the pyxdg package
-installed at run time.
