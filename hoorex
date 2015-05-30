@@ -172,7 +172,7 @@ def main():
     #
     # First handle -g|--group
     # Typically its a category of the SBo repo
-    # but we can define spcial groups ourselves here like the 'all' group.
+    # but we can define special groups ourselves here like the 'all' group.
     if args.sbo_group:
         targets = []
         if 'all' in args.sbo_group:
