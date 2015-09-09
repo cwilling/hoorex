@@ -64,6 +64,8 @@ def main():
     parser.add_argument("-I", "--installed_strict", action="store_true", dest="output_strictly_installed",
                 default=False,
                 help="really show only packages already installed, not even target packages")
+    parser.add_argument("-p", "--dataPath", action="store", dest="data_path",
+                help="specify the directory path to be used for repo data cache storage")
     parser.add_argument("-r", "--reverse", action="store_true", dest="reverse_lookup",
                 default=default_config.getboolean('HooRex', 'reverse_lookup'),
                 help="show build dependencies for target package(s)")
@@ -109,12 +111,19 @@ def main():
     hlog.debug("sbo_path: %s" % sbo_path)
 
     # Repo Data
-    data_dir = os.path.join(xdg_data_home, appname)
+    if args.data_path is not None:
+        data_dir = args.data_path
+    else:
+        data_dir = os.path.join(xdg_data_home, appname)
     try:
         os.makedirs(data_dir)
     except:
-        # ATM assume any exception is because the path already exists
-        pass
+        if not os.path.exists(data_dir):
+            hlog.info("Couldn't create directory (%s) for the repo data" % data_dir)
+            sys.exit(3)
+        else:
+            # No problem - this path already exists
+            pass
     SAVED_DATA=os.path.join(data_dir, 'repoData.pkl')
 
     # Our personal database of package relationships
