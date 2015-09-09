@@ -72,6 +72,10 @@ OPTIONS
     packages depend on them; this process is continued until no
     further depending packages are found.
 
+*-p, --dataPath* 'DATA_PATH'::
+    Specify an alternate directory in which to store the package index
+    file. The default location is ~/.local/share/hoorex
+
 *-r, --reverse*::
     *Reverse* the default calculation of dependency tree i.e. instead of
     determining which other packages require the target package(s),
@@ -180,7 +184,9 @@ FILES
 *~/.local/share/hoorex/repoData.pkl*::
     Contains the hoorex cross reference index of repo information.
     It is generated automatically if it doesn't already exist
-    or whenever the -f option is invoked.
+    or whenever the -f option is invoked. The directory containing
+    the repoData.pkl file can be manually specified with the
+    *-p* (*--dataPath*) option.
 
 
 BUGS
