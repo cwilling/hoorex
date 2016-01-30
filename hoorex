@@ -72,6 +72,9 @@ def main():
     parser.add_argument("-r", "--reverse", action="store_true", dest="reverse_lookup",
                 default=default_config.getboolean('HooRex', 'reverse_lookup'),
                 help="show build dependencies for target package(s)")
+    parser.add_argument("-R", "--restricted", action="store_true", dest="output_only_input",
+                default=False,
+                help="show only packages from the input list")
     parser.add_argument('-s', '--slackbuilds', dest='sbo_path', action='store',
                 help="set the full filesystem path to the local slackbuilds \
                     repository e.g. -s /home/jerry/slackbuilds")
@@ -256,14 +259,21 @@ def main():
             if PkgRequires.has_key(prereq):
                 raw_output.append(prereq)
     # Filter the list, if necessary
-    if args.output_installed or args.output_strictly_installed:
+    sorted_output = []
+    if args.output_only_input:
+        # -R option given
+        sorted_output = sort_output([name for name in targets if name in set(raw_output)], PkgRequires)
+    elif args.output_installed or args.output_strictly_installed:
         repo_path = default_config.get('HooRex', 'slackware_repo')
         if args.output_strictly_installed:
+            # -I option
             all_installed = ['-'.join(pkgname.split('-')[:-3]) for pkgname in os.listdir(repo_path)]
         else:
+            # -i option
             all_installed = set(targets + ['-'.join(pkgname.split('-')[:-3]) for pkgname in os.listdir(repo_path)])
         sorted_output = sort_output([name for name in all_installed if name in set(raw_output)], PkgRequires)
     else:
+        # No filter on output
         sorted_output = sort_output(list(set(raw_output)), PkgRequires)
 
     # OUTPUT

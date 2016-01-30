@@ -81,6 +81,9 @@ OPTIONS
     determining which other packages require the target package(s),
     calculate which packages are required to build the target package(s).
 
+*-R, --restricted*::
+    *Restrict* the output list to those packages named in the input list.
+
 *-s, --slackbuilds* 'SBO_DIRECTORY'::
     Specify full path to the *slackbuilds* directory containing
     the full SlackBuilds.org repository tree.
