@@ -1,8 +1,0 @@
-A Makefile is provided for installation of the hoorex application
-and manpage. Run (as root):
-	make install
-
-
-REQUIREMENTS.
--  the a2x utility (a Python script) is used to generate the man page
-so the python and linuxdoc-tools packages will need to be installed.
