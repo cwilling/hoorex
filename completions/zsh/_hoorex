@@ -1,0 +1,48 @@
+#compdef hoorex
+
+# hoorex: https://github.com/cwilling/hoorex
+
+# test for hoorex config file
+if [ -f ~/.config/hoorex/defaults.cfg ]; then
+    # find out which SBO repo hoorex is configured for
+    sborepo="$(grep 'sbo_path' ~/.config/hoorex/defaults.cfg | cut -d= -f2 | xargs)"
+    # get the top level directories of repo (SBo groups, games, network, etc.)
+    sbogroups=( ${(uf)"$(find $sborepo -type d -mindepth 1 -maxdepth 1 -printf '%f\n')"} )
+    # hoorex also recognises the group "all"
+    sbogroups="${sbogroups} all"
+    # grab a listing of all slackbuilds (just use the directory names)
+    sbobuilds=( ${(uf)"$(find /usr/sbo/repo -type d -mindepth 2 -maxdepth 2 -printf '%f\n')"} )
+else
+    # no config file found, so the only logical option is -s/--slackbuilds <dir>
+    _arguments \
+	'(-s --slackbuilds)'{-s,--slackbuilds}'[Specify full path to the slackbuilds directory containing the full SBo repository tree.]:SBo repo directory:_files -/'
+    return 0
+fi
+
+_arguments -s \
+	   - info \
+	   '(-)'{-h,--help}'[Show help.]:' \
+	   '--version[Show version.]:' \
+	   - dbsettings \
+	   '(-s --slackbuilds)'{-s,--slackbuilds}'[Specify full path to SBo repo.]:SBo repo directory:_files -/:' \
+	   '(-f --force)'{-f,--force}'[Force reconstruction of internal cross reference index.]:' \
+	   '(-p --dataPath)'{-p,--dataPath}'[Alternate directory for the package index file (default is ~/.local/share/hoorex).]:data path:_files -/' \
+	   - commands \
+	   '(-d --debug)'{-d,--debug}'[Show additional informational and debugging output.]' \
+	   '(-g --group)'{-g,--group}'[Use a known group of packages as input (e.g., SBo categories).]:group:(${sbogroups})' \
+	   '(-1 --column)'{-1,--column}'[Show output as a single column.]' \
+	   '(-i --installed -r --reverse)'{-i,--installed}'[Restrict output to installed packages (excepting the target package(s) which are included).]' \
+	   '(-I --installed_strict -r --reverse)'{-I,--installed_strict}'[Strictly restrict output to already installed packages (not even the original target packages).]' \
+	   '(-l --long)'{-l,--long}'[Show category as well as the package (e.g., libraries/json-c).]' \
+	   '(-m --multilevel)'{-m,--multilevel}'[Show dependencies beyond the first level.]' \
+	   '(-r --reverse -i --installed -I --installed_strict)'{-r,--reverse}'[Reverse the default calculation of dependency tree (i.e., calculate which packages are required to build the target package).]' \
+	   '(-R --restricted)'{-R,--restricted}'[Restrict the output to packages named in the input list.]' \
+	   '(-U --unknown_strict)'{-U,--unknown_strict}'[Announce unknown packages and exit.]' \
+	   '(-)*:SlackBuild:(${sbobuilds:|words})' \
+    && return 0
+
+return 1
+
+# Local Variables:
+# mode: sh
+# End:
