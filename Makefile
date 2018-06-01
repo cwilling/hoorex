@@ -14,10 +14,12 @@ hoorex.1:	hoorex.1.in
 install: hoorex man
 	install -m 0755 -D hoorex $(DESTDIR)/usr/bin/hoorex
 	install -m 0644 -D hoorex.1 $(DESTDIR)/usr/man/man1/hoorex.1
+	install -m 0644 -D completions/zsh/_hoorex $(DESTDIR)/usr/share/zsh/site-functions/_hoorex
 
 uninstall:
 	rm $(DESTDIR)/usr/bin/hoorex
 	rm $(DESTDIR)/usr/man/man1/hoorex.1
+	rm $(DESTDIR)/usr/share/zsh/site-functions/_hoorex
 
 clean:
 	rm -f hoorex.1
