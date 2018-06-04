@@ -11,7 +11,7 @@ if [ -f ~/.config/hoorex/defaults.cfg ]; then
     # hoorex also recognises the group "all"
     sbogroups="${sbogroups} all"
     # grab a listing of all slackbuilds (just use the directory names)
-    sbobuilds=( ${(uf)"$(find /usr/sbo/repo -type d -mindepth 2 -maxdepth 2 -printf '%f\n')"} )
+    sbobuilds=( ${(uf)"$(find $sborepo -type d -mindepth 2 -maxdepth 2 -printf '%f\n')"} )
 else
     # no config file found, so the only logical option is -s/--slackbuilds <dir>
     _arguments \
