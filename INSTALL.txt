@@ -1,4 +1,4 @@
-A Makefile is provided for installation of the hoorex application
+A Makefile is provided for installation of the HooRex application
 and manpage. Run (as root):
 	make install
 
@@ -6,3 +6,10 @@ and manpage. Run (as root):
 REQUIREMENTS.
 -  the a2x utility (a Python script) is used to generate the man page
 so the python and linuxdoc-tools packages will need to be installed.
+-  for commandline tab completion under bash, the bash-completion package
+(found in the Slackware CD's "extra" directory) must be installed. Only
+terminals instantiated after installing both bash-completion and HooRex
+will have tab completion enabled. Existing terminals may be enabled by
+running the command:
+	. /usr/share/bash-completion/bash_completion
+

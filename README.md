@@ -15,3 +15,7 @@ HooRex addresses these issues (and more) by generating and cacheing the
 dependency relationships between all packages in the repository, enabling a
 rapid response to dependency queries.
 
+Command line Tab completion is now available for bash and zsh. Completions for
+HooRex should just work for any new zsh instances invoked after HooRex has been
+installed. For completions using bash, ensure that the bash-completions package
+(available from the Slackware repo's "extra" section) has been installed.
