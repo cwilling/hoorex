@@ -1,0 +1,111 @@
+#!/bin/sh
+
+
+# If "sbo_path" is already set in config file, all options are available
+grep sbo_path ~/.config/hoorex/defaults.cfg >/dev/null
+if [ "$?" = "0" ]; then
+  # Master array of options
+  _comp_descriptions=(
+    '-d --debug (Enable additional debugging output)'
+    '-f --force (Recalculate all internal cross reference index)'
+    '-g --group (Use a predefined group of packages as input)'
+    '-h --help (Show help)'
+    '-1 --column (Single column output of results)'
+    '-p --dataPath (Alternate directory to store reference index file)'
+    '-i --installed (Restrict output to packages already installed)'
+    '-I --installed_strict (Restrict output to packages already installed - not even the initial target)'
+    '-l --long (Include category of each result output)'
+    '-m --multilevel (Show dependencies beyond the first level)'
+    '-r --reverse (Reverse display direction of dependencies i.e. show packages required to build the target)'
+    '-R --restricted (Restrict results to those named in the input list)'
+    '-s --slackbuilds (Specify full path to SBo repo)'
+    '-U --unknown_strict (Announce unknown packages and exit)'
+    '-V --version (Show version number and exit)'
+  );
+
+  # find out which SBO repo hoorex is configured for
+  _comp_sborepo="$(grep 'sbo_path' ~/.config/hoorex/defaults.cfg | cut -d= -f2 | xargs)"
+
+  # Find the top level directories of repo (SBo groups: games, network, etc.  + "all")
+  _comp_sbogroups="$(find $_comp_sborepo -not -path '*/\.*' -type d -mindepth 1 -maxdepth 1 -printf '%f ') all"
+
+  # Listing of all slackbuilds
+  _comp_sbobuilds=$(hoorex -g all -1 |sort)
+else
+  # "sbo_path" not set in config file => only -s|--slackbuilds option should be offered
+  _comp_descriptions=( '-s --slackbuilds (Specify full path to SBo repo)' );
+fi
+
+# Create an array of short options based on the master above
+_comp_dcount=0
+while [ "x${_comp_descriptions[_comp_dcount]}" != "x" ]
+do
+  # Add 1st element of each entry in _comp_descriptions array
+  _comp_short_opts[$_comp_dcount]=$(echo ${_comp_descriptions[_comp_dcount]} | cut -d ' ' -f 1);
+
+  _comp_dcount=$(( $_comp_dcount + 1 ));
+done
+
+_hoorex ()
+{
+  local cur prev
+
+  cur=${COMP_WORDS[COMP_CWORD]}
+
+  if [[ $COMP_CWORD -gt 1 ]] ; then
+    prev=${COMP_WORDS[COMP_CWORD-1]};
+    case $prev in
+      -g*|--group*)
+        COMPREPLY=($(compgen -W '${_comp_sbogroups}' -- "$cur"));
+        return;
+        ;;
+      -h*|--help*)
+        return;
+        ;;
+      -p*|--dataPath*)
+        #echo -n "  N.B. The -p|--dataPath option needs full path to alternate directory to store reference index file";
+        return 1;
+        ;;
+      -s*|--slackbuilds*)
+        #echo -n "  N.B. The -s|--slackbuilds option needs full path to SBo slackbuilds tree";
+        return 1;
+        ;;
+      -d|-f|-h|-1|-i|-I|-l|-m|-r|-R|-U|-V|\
+      --debug|--force|--help|--column|--installed|--installed_strict|\
+      --long|--multilevel|--reverse|--restricted|--unknown_strict|--version)
+        COMPREPLY=($(compgen -W '${_comp_sbobuilds}' -- "$cur"));
+        ;;
+      -*)
+        COMPREPLY=($(compgen -W '${_comp_short_opts[*]}' -- "$cur"));
+        return;
+        ;;
+    esac
+    case $cur in
+      --*)
+        COMPREPLY=($(compgen -W '${_comp_descriptions[*]}' -- "$cur"));
+        ;;
+      -*)
+        COMPREPLY=($(compgen -W '${_comp_short_opts[*]}' -- "$cur"));
+        ;;
+      *)
+        COMPREPLY=($(compgen -W '${_comp_sbobuilds}' -- "$cur"));
+        ;;
+    esac
+  else
+    case $cur in
+      --*)
+        COMPREPLY=($(compgen -W '${_comp_descriptions[*]}' -- "$cur"));
+        ;;
+      -*)
+        COMPREPLY=($(compgen -W '${_comp_short_opts[*]}' -- "$cur"));
+        ;;
+      *)
+        COMPREPLY=($(compgen -W '${_comp_sbobuilds}' -- "$cur"));
+        ;;
+    esac
+  fi
+
+}
+complete -F _hoorex hoorex
+
+# ex:set ai shiftwidth=2 inputtab=spaces smarttab noautotab:
