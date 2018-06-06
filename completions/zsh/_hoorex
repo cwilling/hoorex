@@ -7,7 +7,7 @@ if [ -f ~/.config/hoorex/defaults.cfg ]; then
     # find out which SBO repo hoorex is configured for
     sborepo="$(grep 'sbo_path' ~/.config/hoorex/defaults.cfg | cut -d= -f2 | xargs)"
     # get the top level directories of repo (SBo groups, games, network, etc.)
-    sbogroups=( ${(uf)"$(find $sborepo -type d -mindepth 1 -maxdepth 1 -printf '%f\n')"} )
+    sbogroups=( ${(uf)"$(find $sborepo -not -path '*/\.*' -type d -mindepth 1 -maxdepth 1 -printf '%f\n')"} )
     # hoorex also recognises the group "all"
     sbogroups="${sbogroups} all"
     # grab a listing of all slackbuilds (just use the directory names)
